@@ -54,6 +54,17 @@ class LoginViewmodel(private val loginRepository: LoginRepository) {
 
     }
 
+
+    fun observeUiState(
+        onStateChanged: (LoginUiState) -> Unit
+    ) {
+        scope.launch {
+            uiState.collect { state ->
+                onStateChanged(state)
+            }
+        }
+    }
+
     fun onUsernameChanged(username: String) {
         _uiState.value = _uiState.value.copy(
             username = username
