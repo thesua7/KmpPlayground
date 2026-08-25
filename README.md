@@ -1,31 +1,135 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# KmpPlayground
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+Kotlin Multiplatform playground targeting **Android** and **iOS**.
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Shared business logic, networking, and models live in `:shared`. UI is platform-specific:
 
-### Running the apps
+- **Android:** Jetpack Compose (`LoginScreen`)
+- **iOS:** SwiftUI (`ContentView`) wrapping the shared `LoginViewmodel`
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+## Architecture
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+```text
+LoginViewModel
+    ↓
+LoginRepository
+    ↓
+ApiClient
+    ↓
+expect/actual HttpClient
+    ├── Android: OkHttp
+    └── iOS: Darwin
+```
 
-### Running tests
+Login calls `POST https://dummyjson.com/auth/login` with kotlinx.serialization JSON (`Content-Type: application/json`).
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+Test credentials:
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
+- username: `emilys`
+- password: `emilyspass`
+
+## Directory structure
+
+```text
+kmpPlayground/
+├── androidApp/
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       ├── kotlin/com/thesua7/kmpplayground/
+│       │   └── MainActivity.kt
+│       └── res/
+│           ├── drawable/
+│           ├── drawable-v24/
+│           ├── mipmap-*/
+│           └── values/strings.xml
+├── iosApp/
+│   ├── Configuration/
+│   │   └── Config.xcconfig
+│   ├── iosApp/
+│   │   ├── Assets.xcassets/
+│   │   ├── Preview Content/
+│   │   ├── ContentView.swift
+│   │   ├── LoginViewModelWrapper.swift
+│   │   ├── iOSApp.swift
+│   │   └── Info.plist
+│   └── iosApp.xcodeproj/
+├── shared/
+│   ├── build.gradle.kts
+│   └── src/
+│       ├── commonMain/
+│       │   ├── composeResources/drawable/
+│       │   └── kotlin/com/thesua7/kmpplayground/
+│       │       ├── App.kt
+│       │       ├── Greeting.kt
+│       │       ├── GreetingUtil.kt
+│       │       ├── Platform.kt
+│       │       ├── model/
+│       │       │   ├── ApiError.kt
+│       │       │   ├── LoginRequest.kt
+│       │       │   └── LoginResponse.kt
+│       │       ├── network/
+│       │       │   ├── ApiClient.kt
+│       │       │   └── PlatformHttpClient.kt          # expect
+│       │       ├── repository/
+│       │       │   └── LoginRepository.kt
+│       │       └── viewmodel/
+│       │           ├── LoginUiState.kt
+│       │           └── LoginViewmodel.kt
+│       ├── androidMain/kotlin/com/thesua7/kmpplayground/
+│       │   ├── LoginScreen.kt
+│       │   ├── Platform.android.kt
+│       │   ├── di/AppContainer.kt
+│       │   └── network/PlatformHttpClient.kt          # actual OkHttp
+│       ├── iosMain/kotlin/com/thesua7/kmpplayground/
+│       │   ├── MainViewController.kt
+│       │   ├── Platform.ios.kt
+│       │   └── network/PlatformHttpClient.kt          # actual Darwin
+│       ├── commonTest/
+│       ├── androidHostTest/
+│       └── iosTest/
+├── gradle/
+│   ├── libs.versions.toml
+│   ├── gradle-daemon-jvm.properties
+│   └── wrapper/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties
+└── README.md
+```
+
+### Module notes
+
+| Path | Role |
+|---|---|
+| `shared/src/commonMain` | Shared models, repository, ViewModel, Ktor `ApiClient` |
+| `shared/src/androidMain` | Android Compose login UI, OkHttp engine, `AppContainer` |
+| `shared/src/iosMain` | Darwin engine, Compose `MainViewController` (unused by the current SwiftUI screen) |
+| `androidApp` | Android application entry point |
+| `iosApp` | Xcode/SwiftUI app that calls shared Kotlin via `LoginViewModelWrapper` |
+| `gradle/libs.versions.toml` | Version Catalog (Kotlin, AGP, Ktor, Compose, serialization) |
+
+## Stack
+
+- Kotlin `2.4.10`
+- AGP `9.0.1`
+- Compose Multiplatform `1.11.1`
+- Ktor `3.3.1` (OkHttp on Android, Darwin on iOS)
+- kotlinx.serialization JSON
+
+## Running the apps
+
+Use the run configurations in the IDE toolbar, or:
+
+- Android: `./gradlew :androidApp:assembleDebug`
+- iOS: open `iosApp/` in Xcode and run it from there
+
+## Running tests
+
+- Android host tests: `./gradlew :shared:testAndroidHostTest`
 - iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html).
